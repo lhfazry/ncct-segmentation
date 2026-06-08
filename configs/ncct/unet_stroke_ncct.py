@@ -1,41 +1,71 @@
 _base_ = [
-    '../_base_/models/fcn_unet_s5-d16.py', # Contoh menggunakan base U-Net
+    '../_base_/models/fcn_unet_s5-d16.py',
     '../_base_/default_runtime.py',
-    '../_base_/schedules/schedule_20k.py'  # Jadwal training untuk 20.000 iterasi
+    '../_base_/schedules/schedule_20k.py'
 ]
 
-# 1. Sesuaikan Arsitektur Model
+# Model config for NCCT stroke segmentation
+# NOTE: in_channels=3 in backbone is intentional - LoadImageFromFile loads
+# grayscale PNG as 3-channel (R=G=B). This allows using pretrained weights.
 model = dict(
     data_preprocessor=dict(
         type='SegDataPreProcessor',
-        # Normalisasi ke format RGB umum agar pre-trained weight bekerja optimal
-        mean=[123.675, 116.28, 103.53],
-        std=[58.395, 57.12, 57.375],
-        bgr_to_rgb=True),
+        # NCCT images are grayscale stacked to 3-channel. Normalize to [0,1].
+        mean=[0, 0, 0],
+        std=[255, 255, 255],
+        bgr_to_rgb=False),
     decode_head=dict(
-        num_classes=2, # Diubah menjadi 2 class (Background & Stroke)
+        num_classes=2,
         loss_decode=dict(
-            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0, 
-            class_weight=[0.1, 1.0] # Memberikan bobot lebih besar pada piksel stroke (1.0) vs background (0.1) untuk mengatasi imbalance
-        )
-    )
-)
+            type='CrossEntropyLoss',
+            use_sigmoid=False,
+            loss_weight=1.0,
+            # Heavier weight on stroke (class 1) to combat class imbalance
+            class_weight=[0.1, 1.0])),
+    auxiliary_head=dict(
+        num_classes=2,
+        loss_decode=dict(
+            type='CrossEntropyLoss',
+            use_sigmoid=False,
+            loss_weight=0.4,
+            class_weight=[0.1, 1.0])))
 
-# 2. Sesuaikan Dataset
+# Dataset settings
 dataset_type = 'StrokeNCCTDataset'
-data_root = '../dataset/' # Path direktori data Anda (80/10/10)
+data_root = 'data/ncct/'
 
+# Training pipeline with augmentations for medical images
 train_pipeline = [
-    dict(type='LoadImageFromFile'), # Otomatis meload sebagai 3-channel RGB
+    dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
     dict(type='RandomResize', scale=(256, 256), keep_ratio=True),
-    dict(type='RandomFlip', prob=0.5),
-    dict(type='PackSegInputs')
+    dict(type='RandomFlip', prob=0.5, direction='horizontal'),
+    dict(type='RandomFlip', prob=0.5, direction='vertical'),
+    dict(type='PhotoMetricDistortion'),
+    dict(type='PackSegInputs'),
 ]
 
+# Validation/test pipeline (fixed resize, no augmentation)
+val_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='Resize', scale=(256, 256), keep_ratio=True),
+    dict(type='LoadAnnotations'),
+    dict(type='PackSegInputs'),
+]
+
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='Resize', scale=(256, 256), keep_ratio=True),
+    dict(type='LoadAnnotations'),
+    dict(type='PackSegInputs'),
+]
+
+# Data loaders
 train_dataloader = dict(
     batch_size=8,
-    num_workers=4,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(type='InfiniteSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
@@ -44,13 +74,26 @@ train_dataloader = dict(
 
 val_dataloader = dict(
     batch_size=1,
-    num_workers=4,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
         data_prefix=dict(img_path='val/images', seg_map_path='val/masks'),
-        pipeline=train_pipeline)) # Pipeline val biasanya tanpa augmentasi RandomFlip
-        
+        pipeline=val_pipeline))
+
 test_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
-        data_prefix=dict(img_path='test/images', seg_map_path='test/masks')))
+        type=dataset_type,
+        data_root=data_root,
+        data_prefix=dict(img_path='test/images', seg_map_path='test/masks'),
+        pipeline=test_pipeline))
+
+# Evaluators
+val_evaluator = dict(type='IoUMetric', iou_metrics=['mDice', 'mIoU'])
+test_evaluator = dict(type='IoUMetric', iou_metrics=['mDice', 'mIoU'])
