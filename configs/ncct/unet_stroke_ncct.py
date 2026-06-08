@@ -15,7 +15,10 @@ model = dict(
         # NCCT images are grayscale stacked to 3-channel. Normalize to [0,1].
         mean=[0, 0, 0],
         std=[255, 255, 255],
-        bgr_to_rgb=False),
+        bgr_to_rgb=False,
+        # U-Net has 5 downsampling stages (2^5=32), so pad spatial dims
+        # to be divisible by 32 to avoid dimension mismatch in skip connections.
+        size_divisor=32),
     decode_head=dict(
         num_classes=2,
         loss_decode=dict(
