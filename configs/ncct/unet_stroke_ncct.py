@@ -4,9 +4,11 @@ _base_ = [
     '../_base_/schedules/schedule_20k.py'
 ]
 
+# Use BN instead of SyncBN — single-GPU training so they're equivalent,
+# and BN avoids needing to compile MMCV CUDA ops (saves 30+ min).
+norm_cfg = dict(type='BN', requires_grad=True)
+
 # Model config for NCCT stroke segmentation
-# NOTE: in_channels=3 in backbone is intentional - LoadImageFromFile loads
-# grayscale PNG as 3-channel (R=G=B). This allows using pretrained weights.
 model = dict(
     data_preprocessor=dict(
         type='SegDataPreProcessor',

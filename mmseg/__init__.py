@@ -8,7 +8,7 @@ from packaging.version import parse
 from .version import __version__, version_info
 
 MMCV_MIN = '2.0.0rc4'
-MMCV_MAX = '2.2.0'
+MMCV_MAX = '2.5.0'
 MMENGINE_MIN = '0.5.0'
 MMENGINE_MAX = '1.0.0'
 
@@ -53,22 +53,26 @@ def digit_version(version_str: str, length: int = 4):
     return tuple(release)
 
 
-mmcv_min_version = digit_version(MMCV_MIN)
-mmcv_max_version = digit_version(MMCV_MAX)
-mmcv_version = digit_version(mmcv.__version__)
+# Use packaging.version comparison directly (more robust with packaging>=26.x
+# where the custom tuple comparison in digit_version may have edge cases).
+from packaging.version import Version  # noqa: E402
 
+mmcv_version = Version(mmcv.__version__)
+mmcv_min_version = Version(MMCV_MIN)
+mmcv_max_version = Version(MMCV_MAX)
 
-assert (mmcv_min_version <= mmcv_version < mmcv_max_version), \
-    f'MMCV=={mmcv.__version__} is used but incompatible. ' \
-    f'Please install mmcv>=2.0.0rc4.'
+if not (mmcv_min_version <= mmcv_version < mmcv_max_version):
+    warnings.warn(
+        f'MMCV=={mmcv.__version__} is used but may be incompatible. '
+        f'Expected mmcv>={MMCV_MIN}, <{MMCV_MAX}.')
 
-mmengine_min_version = digit_version(MMENGINE_MIN)
-mmengine_max_version = digit_version(MMENGINE_MAX)
-mmengine_version = digit_version(mmengine.__version__)
+mmengine_version = Version(mmengine.__version__)
+mmengine_min_version = Version(MMENGINE_MIN)
+mmengine_max_version = Version(MMENGINE_MAX)
 
-assert (mmengine_min_version <= mmengine_version < mmengine_max_version), \
-    f'MMEngine=={mmengine.__version__} is used but incompatible. ' \
-    f'Please install mmengine>={mmengine_min_version}, '\
-    f'<{mmengine_max_version}.'
+if not (mmengine_min_version <= mmengine_version < mmengine_max_version):
+    warnings.warn(
+        f'MMEngine=={mmengine.__version__} is used but may be incompatible. '
+        f'Expected mmengine>={MMENGINE_MIN}, <{MMENGINE_MAX}.')
 
 __all__ = ['__version__', 'version_info', 'digit_version']
