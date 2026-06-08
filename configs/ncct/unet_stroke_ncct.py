@@ -40,7 +40,7 @@ data_root = 'data/ncct/'
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
-    dict(type='RandomResize', scale=(256, 256), keep_ratio=True),
+    dict(type='RandomResize', scale=(256, 256), ratio_range=(0.5, 2.0), keep_ratio=True),
     dict(type='RandomFlip', prob=0.5, direction='horizontal'),
     dict(type='RandomFlip', prob=0.5, direction='vertical'),
     dict(type='PhotoMetricDistortion'),
