@@ -2,6 +2,8 @@
 import math
 import warnings
 
+from packaging.version import Version
+
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
@@ -147,7 +149,7 @@ class EfficientMultiheadAttention(MultiheadAttention):
 
         # handle the BC-breaking from https://github.com/open-mmlab/mmcv/pull/1418 # noqa
         from mmseg import digit_version, mmcv_version
-        if mmcv_version < digit_version('1.3.17'):
+        if mmcv_version < Version('1.3.17'):
             warnings.warn('The legacy version of forward function in'
                           'EfficientMultiheadAttention is deprecated in'
                           'mmcv>=1.3.17 and will no longer support in the'
