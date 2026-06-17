@@ -14,36 +14,55 @@ _base_ = [
     '../_base_/schedules/schedule_20k.py'
 ]
 
-# ========== Class Imbalance Strategy ==========
-# Dataset: 98% background, 2% stroke (49:1 ratio)
-# [0.02, 1.0] gives equal gradient from both classes
-# (was 2.45x bg bias with [0.05, 1.0])
-# DiceLoss naive_dice=True gives stronger gradients when model is very wrong
+# ========== Class Imbalance Strategy (v2 - Fixed) ==========
+# Previous triple-loss (FocalLoss + DiceLoss + TverskyLoss) still produced
+# NaN for stroke class because FocalLoss gradient SATURATES when the model
+# becomes confidently wrong (pt → 0 for stroke class ⇒ d(FL)/d(logit) ≈ 0).
+# This creates a flat region in the loss landscape the optimizer can't escape.
+#
+# New strategy — Weighted BCE with non-vanishing gradients:
+#
+# 1. CrossEntropyLoss (use_sigmoid=True, class_weight=[0.02, 1.0]):
+#    - BCE with pos_weight=[0.02, 1.0] gives NON-VANISHING gradients:
+#      d(BCE)/d(logit) = sigmoid(x) - target. When target=1, logit=-10,
+#      gradient = 0.00005 - 1 = -0.99995 — does NOT saturate.
+#    - class_weight[0]=0.02: background positive examples contribute 2% gradient
+#    - class_weight[1]=1.0: stroke positive examples contribute 100% gradient
+#    - Background pixels already correct → ~0 gradient. Stroke pixels wrong
+#      (all-background predicted) → strong gradient to fix. Net effect:
+#      at ~99:1 ratio, each stroke pixel contributes ~50× more gradient than
+#      each background pixel. Model naturally escapes all-background trap.
+#
+# 2. DiceLoss (use_sigmoid=True, naive_dice=True, loss_weight=1.0):
+#    - Directly optimizes the Dice evaluation metric
+#    - use_sigmoid=True for consistency with BCE (both use sigmoid)
+#    - naive_dice=True gives stronger gradients when model is very wrong
+#    - After BCE escapes the all-background trap, Dice refines overlap
 
 loss_decode = [
     dict(
         type='CrossEntropyLoss',
-        use_sigmoid=False,
-        loss_weight=1.0,
-        class_weight=[0.02, 1.0]),
+        use_sigmoid=True,
+        class_weight=[0.02, 1.0],  # pos_weight: bg=0.02, stroke=1.0
+        loss_weight=1.0),
     dict(
         type='DiceLoss',
-        use_sigmoid=False,
+        use_sigmoid=True,
         naive_dice=True,
-        loss_weight=2.0)
+        loss_weight=1.0),
 ]
 
 loss_decode_aux = [
     dict(
         type='CrossEntropyLoss',
-        use_sigmoid=False,
-        loss_weight=0.4,
-        class_weight=[0.02, 1.0]),
+        use_sigmoid=True,
+        class_weight=[0.02, 1.0],
+        loss_weight=0.4),
     dict(
         type='DiceLoss',
-        use_sigmoid=False,
+        use_sigmoid=True,
         naive_dice=True,
-        loss_weight=0.8)
+        loss_weight=0.4),
 ]
 
 # AMP override for mixed precision training

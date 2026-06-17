@@ -15,29 +15,41 @@ model = dict(
         size_divisor=32),
     decode_head=dict(
         norm_cfg=norm_cfg,
+        init_cfg=dict(
+            type='Normal', std=0.01,
+            override=dict(
+                name='conv_seg',
+                type='Normal', std=0.01,
+                bias=dict(type='Constant', val=-4.6))),
         loss_decode=[
             dict(
                 type='CrossEntropyLoss',
-                use_sigmoid=False,
-                loss_weight=1.0,
-                class_weight=[0.02, 1.0]),
+                use_sigmoid=True,
+                class_weight=[0.02, 1.0],
+                loss_weight=1.0),
             dict(
                 type='DiceLoss',
-                use_sigmoid=False,
+                use_sigmoid=True,
                 naive_dice=True,
-                loss_weight=2.0)
+                loss_weight=1.0),
         ]),
     auxiliary_head=dict(
         norm_cfg=norm_cfg,
+        init_cfg=dict(
+            type='Normal', std=0.01,
+            override=dict(
+                name='conv_seg',
+                type='Normal', std=0.01,
+                bias=dict(type='Constant', val=-4.6))),
         loss_decode=[
             dict(
                 type='CrossEntropyLoss',
-                use_sigmoid=False,
-                loss_weight=0.4,
-                class_weight=[0.02, 1.0]),
+                use_sigmoid=True,
+                class_weight=[0.02, 1.0],
+                loss_weight=0.4),
             dict(
                 type='DiceLoss',
-                use_sigmoid=False,
+                use_sigmoid=True,
                 naive_dice=True,
-                loss_weight=0.8)
+                loss_weight=0.4),
         ]))
