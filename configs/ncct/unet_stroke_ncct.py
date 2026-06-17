@@ -17,10 +17,7 @@ model = dict(
         norm_cfg=norm_cfg,
         init_cfg=dict(
             type='Normal', std=0.01,
-            override=dict(
-                name='conv_seg',
-                type='Normal', std=0.01,
-                bias=dict(type='Constant', val=-4.6))),
+            override=dict(name='conv_seg')),
         loss_decode=[
             dict(
                 type='CrossEntropyLoss',
@@ -37,10 +34,7 @@ model = dict(
         norm_cfg=norm_cfg,
         init_cfg=dict(
             type='Normal', std=0.01,
-            override=dict(
-                name='conv_seg',
-                type='Normal', std=0.01,
-                bias=dict(type='Constant', val=-4.6))),
+            override=dict(name='conv_seg')),
         loss_decode=[
             dict(
                 type='CrossEntropyLoss',
