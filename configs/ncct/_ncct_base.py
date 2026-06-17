@@ -112,12 +112,11 @@ test_pipeline = [
 
 # ---------- Data Loaders ----------
 # batch_size is PER GPU when using DDP.
-# With 2 × T4 (16 GB each), we can comfortably fit batch 24 for U-Net
-# architectures at 256×256 with AMP. Effective total batch = 48.
-# For larger architectures (DeepLabV3+, PSPNet R-50), reduce to 16 if OOM.
-# Pass --cfg-options train_dataloader.batch_size=16 to override.
+# With 2 × T4 on Kaggle (~14.5 GB usable), batch 16 fits comfortably.
+# Reduce to 12 if still OOM with larger architectures.
+# Pass --cfg-options train_dataloader.batch_size=24 to increase.
 train_dataloader = dict(
-    batch_size=24,
+    batch_size=16,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
