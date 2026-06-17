@@ -112,12 +112,12 @@ test_pipeline = [
 
 # ---------- Data Loaders ----------
 # batch_size is PER GPU when using DDP.
-# With 2 × T4 on Kaggle (~14.5 GB usable), batch 16 fits comfortably.
-# Reduce to 12 if still OOM with larger architectures.
-# Pass --cfg-options train_dataloader.batch_size=24 to increase.
+# Kaggle T4 ~14.5 GB usable. Batch 12 + workers 2 fits U-Net 256x256
+# with AMP. Increase cautiously.
+# Pass --cfg-options train_dataloader.batch_size=16 to try higher.
 train_dataloader = dict(
-    batch_size=16,
-    num_workers=4,
+    batch_size=12,
+    num_workers=2,
     persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
     dataset=dict(
