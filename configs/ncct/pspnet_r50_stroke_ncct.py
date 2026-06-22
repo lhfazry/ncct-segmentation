@@ -46,3 +46,6 @@ model = dict(
                 naive_dice=True,
                 loss_weight=0.4),
         ]))
+
+# ResNet-50 backbone (23.5M params) + PSP head is too heavy for T4 at batch_size=12.
+train_dataloader = dict(batch_size=2)

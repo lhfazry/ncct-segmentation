@@ -47,3 +47,6 @@ model = dict(
                 naive_dice=True,
                 loss_weight=0.4),
         ]))
+
+# U-Net + decoder head + auxiliary head exceeds 14.5 GiB T4 at batch_size=12.
+train_dataloader = dict(batch_size=6)

@@ -48,3 +48,6 @@ model = dict(
                 loss_weight=0.4),
         ]),
     test_cfg=dict(mode='slide', crop_size=(256, 256), stride=(170, 170)))
+
+# U-Net + PSP head + auxiliary head exceeds 14.5 GiB T4 at batch_size=12.
+train_dataloader = dict(batch_size=6)

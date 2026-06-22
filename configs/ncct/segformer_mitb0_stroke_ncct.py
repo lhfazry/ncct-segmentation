@@ -25,4 +25,5 @@ model = dict(
                 naive_dice=True,
                 loss_weight=1.0),
         ]))
-# SegFormer has no auxiliary head.
+# SegFormer has no auxiliary head, so fits in T4 memory better than other configs.
+train_dataloader = dict(batch_size=8)
