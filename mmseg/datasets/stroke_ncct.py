@@ -30,6 +30,12 @@ class StrokeNCCTDataset(BaseSegDataset):
     def load_data_list(self):
         """Load data list, optionally filtering to stroke-positive images."""
         data_list = super().load_data_list()
+        # NCCT masks store stroke as pixel value 255 (white),
+        # but mmseg expects class indices in [0, num_classes).
+        # Map 255→1 so stroke pixels map to class index 1 instead
+        # of being treated as ignore_index=255 and ignored in loss.
+        for item in data_list:
+            item['label_map'] = {0: 0, 255: 1}
         if self.stroke_positive_only and self.stroke_positive_set is not None:
             filtered = []
             for item in data_list:
